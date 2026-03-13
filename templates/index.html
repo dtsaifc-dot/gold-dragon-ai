@@ -1,183 +1,255 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>5M Signal Monitor</title>
-
+<title>Gold Dragon Signal Monitor</title>
 <style>
-body{
-background:#0b0f14;
-color:#d0d7de;
-font-family:monospace;
-text-align:center;
-padding:40px
+:root{
+  --bg:#0b1020;
+  --card:#121a31;
+  --line:#26314f;
+  --txt:#d6d9e0;
+  --muted:#79829a;
+  --up:#22c55e;
+  --down:#ef4444;
+  --blue:#38bdf8;
 }
-
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:monospace}
+header{
+  padding:14px 18px;
+  border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between
+}
+h1{color:#65e7d1;font-size:15px}
+.grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding:16px
+}
 .card{
-background:#111827;
-padding:30px;
-border-radius:12px;
-max-width:600px;
-margin:auto;
-box-shadow:0 0 40px rgba(0,0,0,.6)
+  background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px
 }
-
-.signal{
-font-size:80px;
-font-weight:700;
-margin:20px
+.title{font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase}
+.big{text-align:center;font-size:60px;font-weight:bold}
+.up{color:var(--up)} .down{color:var(--down)}
+.conf{text-align:center;font-size:22px;margin-top:8px}
+.timer{text-align:center;font-size:52px;color:var(--blue);margin-top:10px}
+.kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1f2946}
+.kv:last-child{border:none}
+.bar{height:12px;background:#1d2744;border-radius:4px;overflow:hidden;margin-top:8px}
+.fill-buy{height:100%;background:var(--up)}
+.fill-sell{height:100%;background:var(--down)}
+.table-wrap{padding:0 16px 16px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted)}
+.win{color:var(--up);font-weight:bold}
+.loss{color:var(--down);font-weight:bold}
+.badge{
+  display:inline-block;padding:3px 8px;border-radius:4px;font-weight:bold
 }
-
-.up{color:#00e676}
-.down{color:#ff5252}
-.hold{color:#ffc107}
-
-.stat{
-font-size:18px;
-margin:6px
-}
-
-.bar{
-height:10px;
-background:#222;
-border-radius:6px;
-overflow:hidden;
-margin-top:10px
-}
-
-.fill{
-height:10px;
-background:#00e676;
-width:50%
-}
-
-.timer{
-font-size:32px;
-margin-top:20px
-}
-
+.badge-up{background:#0d2a18;color:var(--up)}
+.badge-down{background:#2d1010;color:var(--down)}
 </style>
 </head>
-
 <body>
+<header>
+  <h1>⚡ GOLD DRAGON SIGNAL MONITOR</h1>
+  <div id="clock">—</div>
+</header>
 
-<div class="card">
+<div class="grid">
+  <div class="card" style="grid-row:span 2">
+    <div class="title">Signal for next 5m candle</div>
+    <div id="signal" class="big">—</div>
+    <div id="conf" class="conf">—</div>
+    <div id="timer" class="timer">—</div>
+    <div style="margin-top:10px">
+      <div class="kv"><span>Target candle</span><span id="target">—</span></div>
+      <div class="kv"><span>Signal created</span><span id="created">—</span></div>
+      <div class="kv"><span>Score</span><span id="score">—</span></div>
+      <div class="kv"><span>Live confidence</span><span id="liveConf">—</span></div>
+    </div>
+  </div>
 
-<h2>BTC 5m SIGNAL MONITOR</h2>
+  <div class="card">
+    <div class="title">Order Flow</div>
+    <div class="bar"><div id="buyBar" class="fill-buy" style="width:50%"></div></div>
+    <div class="bar" style="margin-top:4px"><div id="sellBar" class="fill-sell" style="width:50%"></div></div>
+    <div class="kv"><span>Buy</span><span id="buyPct">—</span></div>
+    <div class="kv"><span>Sell</span><span id="sellPct">—</span></div>
+    <div class="kv"><span>Flow</span><span id="flowVal">—</span></div>
+  </div>
 
-<div id="signal" class="signal hold">HOLD</div>
+  <div class="card">
+    <div class="title">Depth</div>
+    <div class="kv"><span>Imbalance</span><span id="imbVal">—</span></div>
+    <div class="kv"><span>Ratio</span><span id="ratioVal">—</span></div>
+    <div class="kv"><span>Price</span><span id="priceVal">—</span></div>
+  </div>
 
-<div class="stat">Momentum: <span id="momentum">0</span></div>
-<div class="stat">RSI: <span id="rsi">0</span></div>
-<div class="stat">Volume spike: <span id="volume">0</span></div>
+  <div class="card">
+    <div class="title">Cum Delta</div>
+    <div class="kv"><span>Last</span><span id="cumLast">—</span></div>
+    <div class="kv"><span>Slope</span><span id="cumSlope">—</span></div>
+    <div class="kv"><span>RSI</span><span id="rsiVal">—</span></div>
+  </div>
 
-<div class="bar"><div id="confidenceBar" class="fill"></div></div>
+  <div class="card">
+    <div class="title">Stats</div>
+    <div class="kv"><span>Total</span><span id="totalVal">0</span></div>
+    <div class="kv"><span>Wins</span><span id="winsVal">0</span></div>
+    <div class="kv"><span>Loss</span><span id="lossVal">0</span></div>
+    <div class="kv"><span>Winrate</span><span id="wrVal">0%</span></div>
+  </div>
+</div>
 
-<div class="stat">Confidence: <span id="confidence">0%</span></div>
-
-<div class="timer" id="timer">--</div>
-
+<div class="table-wrap">
+  <div class="title" style="margin-bottom:10px">Signal History</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Signal Time</th>
+        <th>Target Candle</th>
+        <th>Signal</th>
+        <th>Conf</th>
+        <th>Open</th>
+        <th>Close</th>
+        <th>Actual</th>
+        <th>Result</th>
+      </tr>
+    </thead>
+    <tbody id="histBody">
+      <tr><td colspan="8">Ожидание истории...</td></tr>
+    </tbody>
+  </table>
 </div>
 
 <script>
+let lastEventId = null;
+let audioUnlocked = false;
 
-const API =
-"https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=100"
+function unlockAudio(){
+  if(audioUnlocked) return;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if(ctx.state === 'suspended'){ ctx.resume(); }
+  audioUnlocked = true;
+}
+document.addEventListener('click', unlockAudio, {once:true});
+
+function beep(signal){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if(signal === 'UP'){
+      osc.frequency.setValueAtTime(900, ctx.currentTime);
+    }else{
+      osc.frequency.setValueAtTime(500, ctx.currentTime);
+    }
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  }catch(e){}
+}
+
+function fmt(n,d=2){
+  if(n===null||n===undefined) return '—';
+  return Number(n).toFixed(d);
+}
+
+function utcShort(s){
+  if(!s) return '—';
+  return s.replace(' UTC','');
+}
+
+function updateClock(){
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('ru-RU');
+}
+setInterval(updateClock,1000);
+updateClock();
 
 async function load(){
+  const r = await fetch('/api/signal?t=' + Date.now());
+  const d = await r.json();
 
-const r = await fetch(API)
-const data = await r.json()
+  const live = d.live;
+  const final = d.final;
+  const hist = d.history || [];
+  const stats = d.stats || {};
 
-const closes = data.map(x=>parseFloat(x[4]))
-const volumes = data.map(x=>parseFloat(x[5]))
+  // frozen signal only
+  const sig = final.signal === 'WAIT' ? '—' : final.signal;
+  const signalEl = document.getElementById('signal');
+  signalEl.textContent = sig === 'UP' ? '▲ UP' : sig === 'DOWN' ? '▼ DOWN' : '—';
+  signalEl.className = 'big ' + (sig === 'UP' ? 'up' : sig === 'DOWN' ? 'down' : '');
 
-const last = closes.length-1
+  document.getElementById('conf').textContent = final.confidence ? `${final.confidence}%` : '—';
+  document.getElementById('target').textContent = utcShort(final.target_candle_open_utc);
+  document.getElementById('created').textContent = utcShort(final.created_utc);
+  document.getElementById('score').textContent = final.score ?? '—';
+  document.getElementById('liveConf').textContent = `${live.conf_live}%`;
 
-const momentum = closes[last] - closes[last-3]
+  const sec = Number(live.seconds_to_next_candle || 0);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  document.getElementById('timer').textContent = `${m}:${String(s).padStart(2,'0')}`;
 
-let gains = 0
-let losses = 0
+  // order flow
+  const buy = Math.max(0, Math.min(100, 50 + (Number(live.flow || 0) * 250)));
+  const sell = 100 - buy;
+  document.getElementById('buyBar').style.width = buy + '%';
+  document.getElementById('sellBar').style.width = sell + '%';
+  document.getElementById('buyPct').textContent = fmt(buy,1) + '%';
+  document.getElementById('sellPct').textContent = fmt(sell,1) + '%';
+  document.getElementById('flowVal').textContent = fmt(live.flow,3);
 
-for(let i=closes.length-15;i<closes.length;i++){
+  // depth
+  document.getElementById('imbVal').textContent = fmt(live.imb,3);
+  document.getElementById('ratioVal').textContent = fmt(live.ratio,3);
+  document.getElementById('priceVal').textContent = fmt(live.price,2);
 
-const diff = closes[i]-closes[i-1]
+  // cum delta
+  document.getElementById('cumLast').textContent = fmt(live.cum_delta_last,3);
+  document.getElementById('cumSlope').textContent = fmt(live.cum_delta_slope,3);
+  document.getElementById('rsiVal').textContent = fmt(live.rsi,1);
 
-if(diff>0)gains+=diff
-else losses+=Math.abs(diff)
+  // stats
+  document.getElementById('totalVal').textContent = stats.total ?? 0;
+  document.getElementById('winsVal').textContent = stats.wins ?? 0;
+  document.getElementById('lossVal').textContent = stats.losses ?? 0;
+  document.getElementById('wrVal').textContent = (stats.winrate ?? 0) + '%';
 
+  // history
+  const body = document.getElementById('histBody');
+  if(!hist.length){
+    body.innerHTML = '<tr><td colspan="8">Истории пока нет</td></tr>';
+  }else{
+    body.innerHTML = hist.map(x => `
+      <tr>
+        <td>${utcShort(x.signal_time_utc)}</td>
+        <td>${utcShort(x.target_open_utc)}</td>
+        <td>${x.predicted === 'UP' ? '<span class="badge badge-up">UP</span>' : '<span class="badge badge-down">DOWN</span>'}</td>
+        <td>${x.confidence}%</td>
+        <td>${x.candle_open_price}</td>
+        <td>${x.candle_close_price}</td>
+        <td>${x.actual === 'UP' ? '<span class="badge badge-up">UP</span>' : '<span class="badge badge-down">DOWN</span>'}</td>
+        <td class="${x.result === 'WIN' ? 'win' : 'loss'}">${x.result}</td>
+      </tr>
+    `).join('');
+  }
+
+  // sound exactly on frozen signal
+  if(final.event_id && final.event_id !== lastEventId){
+    lastEventId = final.event_id;
+    beep(final.signal);
+  }
 }
 
-const rs = gains/(losses||1)
-const rsi = 100-(100/(1+rs))
-
-const volAvg =
-volumes.slice(-20).reduce((a,b)=>a+b)/20
-
-const volNow = volumes[last]
-
-const volumeSpike = volNow/volAvg
-
-let score = 0
-
-score += momentum*0.4
-score += (rsi-50)*0.3
-score += (volumeSpike-1)*20*0.3
-
-let signal="HOLD"
-
-if(score>10) signal="UP"
-if(score<-10) signal="DOWN"
-
-const confidence = Math.min(Math.abs(score)*2,95)
-
-render(signal,confidence,momentum,rsi,volumeSpike)
-
-}
-
-function render(signal,conf,momentum,rsi,vol){
-
-const el = document.getElementById("signal")
-el.innerText = signal
-el.className = "signal " + signal.toLowerCase()
-
-document.getElementById("momentum").innerText = momentum.toFixed(2)
-document.getElementById("rsi").innerText = rsi.toFixed(1)
-document.getElementById("volume").innerText = vol.toFixed(2)
-
-document.getElementById("confidence").innerText =
-conf.toFixed(1)+"%"
-
-document.getElementById("confidenceBar").style.width =
-conf+"%"
-
-if(signal==="DOWN")
-document.getElementById("confidenceBar").style.background="#ff5252"
-
-if(signal==="UP")
-document.getElementById("confidenceBar").style.background="#00e676"
-
-}
-
-function timer(){
-
-const now = Date.now()/1000
-const left = 300 - Math.floor(now % 300)
-
-const m = Math.floor(left/60)
-const s = left%60
-
-document.getElementById("timer").innerText =
-"Next signal in: "+m+":"+String(s).padStart(2,"0")
-
-}
-
-setInterval(load,15000)
-setInterval(timer,1000)
-
-load()
-
+setInterval(load, 1000);
+load();
 </script>
-
 </body>
 </html>
