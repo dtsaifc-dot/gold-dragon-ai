@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>GOLD DRAGON — AI TERMINAL</title>
+    <style>
+        body { background: #05080b; color: #b0bec5; font-family: 'IBM Plex Mono', monospace; margin: 0; }
+        .wrap { max-width: 900px; margin: 40px auto; padding: 20px; border: 1px solid #152030; }
+        .hdr { display: flex; justify-content: space-between; border-bottom: 1px solid #00e676; padding-bottom: 10px; }
+        .main-sig { font-size: 100px; font-weight: bold; text-align: center; margin: 40px 0; transition: 0.3s; }
+        .UP { color: #00e676; text-shadow: 0 0 40px #00e676; }
+        .DOWN { color: #ff1744; text-shadow: 0 0 40px #ff1744; }
+        .HOLD { color: #ffab00; opacity: 0.5; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .card { background: #090d11; border: 1px solid #1a2d40; padding: 15px; text-align: center; }
+        .val { font-size: 24px; color: #fff; margin-top: 10px; }
+        .bar { height: 4px; background: #152030; margin-top: 10px; position: relative; }
+        .fill { height: 100%; background: #00e676; transition: 0.5s; width: 0%; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="hdr">
+            <div>◈ GOLD DRAGON AI / BTC-5M</div>
+            <div id="status" style="color:#00e676">● LIVE MONITOR</div>
+        </div>
+        <div id="sig-val" class="main-sig HOLD">WAIT</div>
+        <div class="grid">
+            <div class="card"><div>ORDER FLOW</div><div class="val" id="of-val">0.00</div></div>
+            <div class="card">
+                <div>CONFIDENCE</div><div class="val" id="conf-val">50%</div>
+                <div class="bar"><div id="conf-bar" class="fill"></div></div>
+            </div>
+            <div class="card"><div>IMBALANCE</div><div class="val" id="imb-val">0.00</div></div>
+        </div>
+    </div>
+    <script>
+        async function update() {
+            const res = await fetch('/api/signal');
+            const d = await res.json();
+            const s = document.getElementById('sig-val');
+            s.textContent = d.signal;
+            s.className = 'main-sig ' + d.signal;
+            document.getElementById('of-val').textContent = d.of_score;
+            document.getElementById('conf-val').textContent = d.conf + '%';
+            document.getElementById('conf-bar').style.width = d.conf + '%';
+            document.getElementById('imb-val').textContent = d.imb;
+        }
+        setInterval(update, 1000);
+    </script>
+</body>
+</html>
