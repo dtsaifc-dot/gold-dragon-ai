@@ -1,0 +1,50 @@
+[
+  {
+    "signal_time_utc": "2026-03-13 14:59:51 UTC",
+    "target_open_ts": 1773414000,
+    "target_open_utc": "2026-03-13 15:00:00 UTC",
+    "target_close_ts": 1773414300,
+    "target_close_utc": "2026-03-13 15:05:00 UTC",
+    "predicted": "DOWN",
+    "confidence": 59.4,
+    "score": -0.1439,
+    "entry_reference_price": 72397.0,
+    "candle_open_price": null,
+    "candle_close_price": null,
+    "actual": null,
+    "result": "PENDING",
+    "event_id": "1773414000-DOWN"
+  },
+  {
+    "signal_time_utc": "2026-03-13 14:54:52 UTC",
+    "target_open_ts": 1773413700,
+    "target_open_utc": "2026-03-13 14:55:00 UTC",
+    "target_close_ts": 1773414000,
+    "target_close_utc": "2026-03-13 15:00:00 UTC",
+    "predicted": "DOWN",
+    "confidence": 95,
+    "score": -0.5404,
+    "entry_reference_price": 72529.0,
+    "candle_open_price": 72558.3,
+    "candle_close_price": 72356.8,
+    "actual": "DOWN",
+    "result": "WIN",
+    "event_id": "1773413700-DOWN"
+  },
+  {
+    "signal_time_utc": "2026-03-13 14:49:50 UTC",
+    "target_open_ts": 1773413400,
+    "target_open_utc": "2026-03-13 14:50:00 UTC",
+    "target_close_ts": 1773413700,
+    "target_close_utc": "2026-03-13 14:55:00 UTC",
+    "predicted": "DOWN",
+    "confidence": 88.9,
+    "score": -0.4391,
+    "entry_reference_price": 72760.9,
+    "candle_open_price": 72715.7,
+    "candle_close_price": 72550.0,
+    "actual": "DOWN",
+    "result": "WIN",
+    "event_id": "1773413400-DOWN"
+  }
+]

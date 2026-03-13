@@ -1,4 +1,6 @@
+import json
 import math
+import os
 import time
 import threading
 from datetime import datetime, timezone
@@ -11,6 +13,7 @@ app = Flask(__name__)
 SYMBOL = "BTCUSDT"
 TIMEFRAME_SEC = 300
 FINAL_SIGNAL_BEFORE_SEC = 10
+HISTORY_FILE = "/root/gold-dragon-ai/signal_history.json"
 
 BINANCE_KLINES = "https://fapi.binance.com/fapi/v1/klines"
 BINANCE_DEPTH = "https://fapi.binance.com/fapi/v1/depth"
@@ -84,9 +87,26 @@ class GoldDragonMonitor:
             "event_id": None,
         }
 
-        self.history = []
-        self._frozen_for_target = None
-        self._resolved_for_target = None
+        self.history = self.load_history()
+        self._frozen_targets = set()
+
+    def load_history(self):
+        if not os.path.exists(HISTORY_FILE):
+            return []
+        try:
+            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, list) else []
+        except Exception as e:
+            print("load_history error:", e)
+            return []
+
+    def save_history(self):
+        try:
+            with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+                json.dump(self.history[:500], f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print("save_history error:", e)
 
     def safe_get_json(self, url, params=None):
         r = requests.get(url, params=params, timeout=5)
@@ -105,7 +125,6 @@ class GoldDragonMonitor:
         volumes = [float(x[5]) for x in data]
 
         last_close = closes[-1]
-
         momentum_pct = ((closes[-1] - closes[-4]) / closes[-4]) * 100 if closes[-4] else 0.0
 
         gains = 0.0
@@ -173,11 +192,7 @@ class GoldDragonMonitor:
 
         trades_total = buy_qty + sell_qty
         flow = ((buy_qty - sell_qty) / trades_total) if trades_total > 0 else 0.0
-
-        if len(cum_points) >= 2:
-            cum_slope = (cum_points[-1] - cum_points[0]) / len(cum_points)
-        else:
-            cum_slope = 0.0
+        cum_slope = (cum_points[-1] - cum_points[0]) / len(cum_points) if len(cum_points) >= 2 else 0.0
 
         return {
             "imbalance": imbalance,
@@ -214,14 +229,8 @@ class GoldDragonMonitor:
         )
 
         final_score = raw_score - vol_penalty if raw_score > 0 else raw_score + vol_penalty
-
-        if final_score >= 0:
-            signal_hint = "UP"
-        else:
-            signal_hint = "DOWN"
-
-        confidence = 45 + min(50, abs(final_score) * 100)
-        confidence = min(95, confidence)
+        signal_hint = "UP" if final_score >= 0 else "DOWN"
+        confidence = min(95, 45 + min(50, abs(final_score) * 100))
 
         return {
             "signal_hint": signal_hint,
@@ -275,9 +284,30 @@ class GoldDragonMonitor:
         sec_left = seconds_to_next_candle(now)
         target_open = next_candle_open_ts(now)
 
-        if sec_left <= FINAL_SIGNAL_BEFORE_SEC and self._frozen_for_target != target_open:
+        if sec_left <= FINAL_SIGNAL_BEFORE_SEC and target_open not in self._frozen_targets:
             frozen_signal = self.live["signal_hint"]
             event_id = f"{int(target_open)}-{frozen_signal}"
+
+            row = {
+                "signal_time_utc": iso_utc(now),
+                "target_open_ts": target_open,
+                "target_open_utc": iso_utc(target_open),
+                "target_close_ts": target_open + TIMEFRAME_SEC,
+                "target_close_utc": iso_utc(target_open + TIMEFRAME_SEC),
+                "predicted": frozen_signal,
+                "confidence": self.live["conf_live"],
+                "score": self.live["score_live"],
+                "entry_reference_price": self.live["price"],
+                "candle_open_price": None,
+                "candle_close_price": None,
+                "actual": None,
+                "result": "PENDING",
+                "event_id": event_id,
+            }
+
+            self.history.insert(0, row)
+            self.history = self.history[:500]
+            self.save_history()
 
             self.final_signal = {
                 "status": "FROZEN",
@@ -294,70 +324,69 @@ class GoldDragonMonitor:
                 "event_id": event_id,
             }
 
-            self._frozen_for_target = target_open
+            self._frozen_targets.add(target_open)
             print(f"[FROZEN] {frozen_signal} conf={self.live['conf_live']} target={iso_utc(target_open)}")
 
-    def resolve_closed_candle(self):
-        if self.final_signal["status"] != "FROZEN":
-            return
-
-        target_open = self.final_signal["target_candle_open_ts"]
-        target_close = self.final_signal["target_candle_close_ts"]
-
-        if utc_ts() < target_close + 2:
-            return
-
-        if self._resolved_for_target == target_open:
+    def resolve_pending_rows(self):
+        now = utc_ts()
+        if not self.history:
             return
 
         data = self.safe_get_json(
             BINANCE_KLINES,
-            {"symbol": SYMBOL, "interval": "5m", "limit": 10},
+            {"symbol": SYMBOL, "interval": "5m", "limit": 20},
         )
 
-        target_candle = None
+        candles_by_open = {}
         for row in data:
             row_open = int(row[0] / 1000)
-            if row_open == target_open:
-                target_candle = row
-                break
+            candles_by_open[row_open] = row
 
-        if not target_candle:
-            return
+        changed = False
 
-        open_price = float(target_candle[1])
-        close_price = float(target_candle[4])
+        for row in self.history:
+            if row["result"] != "PENDING":
+                continue
 
-        actual = "UP" if close_price >= open_price else "DOWN"
-        predicted = self.final_signal["signal"]
-        result = "WIN" if actual == predicted else "LOSS"
+            target_open = row["target_open_ts"]
+            target_close = row["target_close_ts"]
 
-        row = {
-            "signal_time_utc": self.final_signal["created_utc"],
-            "target_open_utc": self.final_signal["target_candle_open_utc"],
-            "target_close_utc": self.final_signal["target_candle_close_utc"],
-            "predicted": predicted,
-            "confidence": self.final_signal["confidence"],
-            "score": self.final_signal["score"],
-            "entry_reference_price": self.final_signal["entry_price_reference"],
-            "candle_open_price": round(open_price, 2),
-            "candle_close_price": round(close_price, 2),
-            "actual": actual,
-            "result": result,
-        }
+            if now < target_close + 2:
+                continue
 
-        self.history.insert(0, row)
-        self.history = self.history[:300]
-        self._resolved_for_target = target_open
-        print(f"[RESOLVED] predicted={predicted} actual={actual} result={result}")
+            candle = candles_by_open.get(target_open)
+            if not candle:
+                continue
+
+            open_price = float(candle[1])
+            close_price = float(candle[4])
+
+            actual = "UP" if close_price >= open_price else "DOWN"
+            result = "WIN" if actual == row["predicted"] else "LOSS"
+
+            row["candle_open_price"] = round(open_price, 2)
+            row["candle_close_price"] = round(close_price, 2)
+            row["actual"] = actual
+            row["result"] = result
+            changed = True
+
+            print(f"[RESOLVED] predicted={row['predicted']} actual={actual} result={result}")
+
+        if changed:
+            self.save_history()
 
     def stats(self):
-        total = len(self.history)
-        wins = sum(1 for x in self.history if x["result"] == "WIN")
-        losses = sum(1 for x in self.history if x["result"] == "LOSS")
-        winrate = round((wins / total) * 100, 1) if total else 0.0
+        total_signals = len(self.history)
+        resolved = [x for x in self.history if x["result"] in ("WIN", "LOSS")]
+        wins = sum(1 for x in resolved if x["result"] == "WIN")
+        losses = sum(1 for x in resolved if x["result"] == "LOSS")
+        pending = sum(1 for x in self.history if x["result"] == "PENDING")
+        winrate = round((wins / len(resolved)) * 100, 1) if resolved else 0.0
+
         return {
-            "total": total,
+            "total": total_signals,
+            "resolved": len(resolved),
+            "pending": pending,
             "wins": wins,
             "losses": losses,
             "winrate": winrate,
@@ -368,7 +397,7 @@ class GoldDragonMonitor:
             try:
                 self.update_live()
                 self.freeze_signal_10s_before()
-                self.resolve_closed_candle()
+                self.resolve_pending_rows()
             except Exception as e:
                 print("loop error:", e)
             time.sleep(1)
