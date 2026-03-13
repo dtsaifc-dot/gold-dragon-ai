@@ -1,52 +1,183 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>GOLD DRAGON — AI TERMINAL</title>
-    <style>
-        body { background: #05080b; color: #b0bec5; font-family: 'IBM Plex Mono', monospace; margin: 0; }
-        .wrap { max-width: 900px; margin: 40px auto; padding: 20px; border: 1px solid #152030; }
-        .hdr { display: flex; justify-content: space-between; border-bottom: 1px solid #00e676; padding-bottom: 10px; }
-        .main-sig { font-size: 100px; font-weight: bold; text-align: center; margin: 40px 0; transition: 0.3s; }
-        .UP { color: #00e676; text-shadow: 0 0 40px #00e676; }
-        .DOWN { color: #ff1744; text-shadow: 0 0 40px #ff1744; }
-        .HOLD { color: #ffab00; opacity: 0.5; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-        .card { background: #090d11; border: 1px solid #1a2d40; padding: 15px; text-align: center; }
-        .val { font-size: 24px; color: #fff; margin-top: 10px; }
-        .bar { height: 4px; background: #152030; margin-top: 10px; position: relative; }
-        .fill { height: 100%; background: #00e676; transition: 0.5s; width: 0%; }
-    </style>
+<meta charset="UTF-8">
+<title>5M Signal Monitor</title>
+
+<style>
+body{
+background:#0b0f14;
+color:#d0d7de;
+font-family:monospace;
+text-align:center;
+padding:40px
+}
+
+.card{
+background:#111827;
+padding:30px;
+border-radius:12px;
+max-width:600px;
+margin:auto;
+box-shadow:0 0 40px rgba(0,0,0,.6)
+}
+
+.signal{
+font-size:80px;
+font-weight:700;
+margin:20px
+}
+
+.up{color:#00e676}
+.down{color:#ff5252}
+.hold{color:#ffc107}
+
+.stat{
+font-size:18px;
+margin:6px
+}
+
+.bar{
+height:10px;
+background:#222;
+border-radius:6px;
+overflow:hidden;
+margin-top:10px
+}
+
+.fill{
+height:10px;
+background:#00e676;
+width:50%
+}
+
+.timer{
+font-size:32px;
+margin-top:20px
+}
+
+</style>
 </head>
+
 <body>
-    <div class="wrap">
-        <div class="hdr">
-            <div>◈ GOLD DRAGON AI / BTC-5M</div>
-            <div id="status" style="color:#00e676">● LIVE MONITOR</div>
-        </div>
-        <div id="sig-val" class="main-sig HOLD">WAIT</div>
-        <div class="grid">
-            <div class="card"><div>ORDER FLOW</div><div class="val" id="of-val">0.00</div></div>
-            <div class="card">
-                <div>CONFIDENCE</div><div class="val" id="conf-val">50%</div>
-                <div class="bar"><div id="conf-bar" class="fill"></div></div>
-            </div>
-            <div class="card"><div>IMBALANCE</div><div class="val" id="imb-val">0.00</div></div>
-        </div>
-    </div>
-    <script>
-        async function update() {
-            const res = await fetch('/api/signal');
-            const d = await res.json();
-            const s = document.getElementById('sig-val');
-            s.textContent = d.signal;
-            s.className = 'main-sig ' + d.signal;
-            document.getElementById('of-val').textContent = d.of_score;
-            document.getElementById('conf-val').textContent = d.conf + '%';
-            document.getElementById('conf-bar').style.width = d.conf + '%';
-            document.getElementById('imb-val').textContent = d.imb;
-        }
-        setInterval(update, 1000);
-    </script>
+
+<div class="card">
+
+<h2>BTC 5m SIGNAL MONITOR</h2>
+
+<div id="signal" class="signal hold">HOLD</div>
+
+<div class="stat">Momentum: <span id="momentum">0</span></div>
+<div class="stat">RSI: <span id="rsi">0</span></div>
+<div class="stat">Volume spike: <span id="volume">0</span></div>
+
+<div class="bar"><div id="confidenceBar" class="fill"></div></div>
+
+<div class="stat">Confidence: <span id="confidence">0%</span></div>
+
+<div class="timer" id="timer">--</div>
+
+</div>
+
+<script>
+
+const API =
+"https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=100"
+
+async function load(){
+
+const r = await fetch(API)
+const data = await r.json()
+
+const closes = data.map(x=>parseFloat(x[4]))
+const volumes = data.map(x=>parseFloat(x[5]))
+
+const last = closes.length-1
+
+const momentum = closes[last] - closes[last-3]
+
+let gains = 0
+let losses = 0
+
+for(let i=closes.length-15;i<closes.length;i++){
+
+const diff = closes[i]-closes[i-1]
+
+if(diff>0)gains+=diff
+else losses+=Math.abs(diff)
+
+}
+
+const rs = gains/(losses||1)
+const rsi = 100-(100/(1+rs))
+
+const volAvg =
+volumes.slice(-20).reduce((a,b)=>a+b)/20
+
+const volNow = volumes[last]
+
+const volumeSpike = volNow/volAvg
+
+let score = 0
+
+score += momentum*0.4
+score += (rsi-50)*0.3
+score += (volumeSpike-1)*20*0.3
+
+let signal="HOLD"
+
+if(score>10) signal="UP"
+if(score<-10) signal="DOWN"
+
+const confidence = Math.min(Math.abs(score)*2,95)
+
+render(signal,confidence,momentum,rsi,volumeSpike)
+
+}
+
+function render(signal,conf,momentum,rsi,vol){
+
+const el = document.getElementById("signal")
+el.innerText = signal
+el.className = "signal " + signal.toLowerCase()
+
+document.getElementById("momentum").innerText = momentum.toFixed(2)
+document.getElementById("rsi").innerText = rsi.toFixed(1)
+document.getElementById("volume").innerText = vol.toFixed(2)
+
+document.getElementById("confidence").innerText =
+conf.toFixed(1)+"%"
+
+document.getElementById("confidenceBar").style.width =
+conf+"%"
+
+if(signal==="DOWN")
+document.getElementById("confidenceBar").style.background="#ff5252"
+
+if(signal==="UP")
+document.getElementById("confidenceBar").style.background="#00e676"
+
+}
+
+function timer(){
+
+const now = Date.now()/1000
+const left = 300 - Math.floor(now % 300)
+
+const m = Math.floor(left/60)
+const s = left%60
+
+document.getElementById("timer").innerText =
+"Next signal in: "+m+":"+String(s).padStart(2,"0")
+
+}
+
+setInterval(load,15000)
+setInterval(timer,1000)
+
+load()
+
+</script>
+
 </body>
 </html>
