@@ -1,0 +1,80 @@
+{
+  "ts": "2026-03-15T10:24:46Z",
+  "symbol": "BTC/USDT",
+  "timeframe": "5m",
+  "signal": "DOWN",
+  "confidence": 67.0,
+  "score": -28.3,
+  "score_signal": "DOWN",
+  "score_confidence": 67.0,
+  "next_candle": {
+    "open_ts": "2026-03-15T10:25:00Z",
+    "close_ts": "2026-03-15T10:30:00Z",
+    "secs_before": 15
+  },
+  "candle": {
+    "ts": "2026-03-15T10:20:00Z",
+    "open": 71826.7,
+    "high": 71878.9,
+    "low": 71784.3,
+    "close": 71800.0,
+    "volume": 205.633,
+    "delta": -49.795,
+    "buy_volume": 79.683,
+    "sell_volume": 129.478,
+    "volume_estimated": false
+  },
+  "order_flow": {
+    "buy_pct": 38.1,
+    "sell_pct": 61.9,
+    "buy_volume": 79.683,
+    "sell_volume": 129.478,
+    "total_volume": 209.161,
+    "trade_count": 3000,
+    "large_buy_vol": 63.959,
+    "large_sell_vol": 111.755,
+    "absorption": "none",
+    "dominance": "sellers_moderate"
+  },
+  "depth": {
+    "imbalance": -0.595,
+    "bid_vol": 4.07,
+    "ask_vol": 16.01,
+    "ratio": 0.25,
+    "levels_used": 100
+  },
+  "cum_delta": {
+    "values": [
+      75.662,
+      163.45499999999998
+    ],
+    "last": 163.45499999999998,
+    "first": 75.662,
+    "slope": 87.79
+  },
+  "delta_trend": {
+    "short": "растущий 📈",
+    "medium": "флэт ➡️"
+  },
+  "divergence": null,
+  "adaptive_trend": {
+    "direction": "UP",
+    "pearson": 0.8489,
+    "slope": 0.000145,
+    "period": 45
+  },
+  "catboost": {
+    "active": false,
+    "signal": null,
+    "prob_up": 0.5,
+    "prob_down": 0.5,
+    "confidence": 50.0,
+    "above_thr": false
+  },
+  "reasons": [
+    "сильная отрицательная дельта свечи (-50)",
+    "ускорение продаж (+125% от среднего)",
+    "Стакан (100 ур.): asks сильнее (4.0x, imbalance -0.59)",
+    "[инфо] Delta trend: короткий=растущий, средний=флэт (расхождение)"
+  ]
+}
