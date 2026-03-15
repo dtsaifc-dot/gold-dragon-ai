@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OF Bot v33 Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:      #080b10;
+  --bg2:     #0f1318;
+  --bg3:     #161b24;
+  --bg4:     #1c2330;
+  --border:  #1f2836;
+  --border2: #2a3446;
+  --text:    #c8d0df;
+  --muted:   #556070;
+  --muted2:  #3d4a58;
+  --up:      #00e676;
+  --up-dim:  #00b05a;
+  --up-bg:   #001a0d;
+  --down:    #ff4c6b;
+  --down-dim:#cc2244;
+  --down-bg: #1a0008;
+  --hold:    #ffb300;
+  --hold-bg: #1a1000;
+  --accent:  #4d7fff;
+  --accent2: #2a4fa8;
+  --blue:    #38c8fa;
+  --purple:  #9b7dff;
+  --teal:    #00d4b4;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ─── HEADER ─────────────────────────────────────────────────────── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  gap: 12px;
+}
+.header-left { display: flex; align-items: center; gap: 14px; }
+header h1 {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px; color: var(--accent);
+  letter-spacing: 2px; text-transform: uppercase;
+}
+#live-badge {
+  padding: 2px 10px; border-radius: 3px; font-size: 10px;
+  font-family: 'Space Mono', monospace; letter-spacing: 1px;
+  background: var(--bg3); color: var(--muted); border: 1px solid var(--border2);
+  transition: all 0.3s;
+}
+#live-badge.live {
+  background: var(--up-bg); color: var(--up);
+  border-color: var(--up-dim);
+  box-shadow: 0 0 8px rgba(0,230,118,0.2);
+  animation: pulse-live 2s infinite;
+}
+@keyframes pulse-live {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+#update-ts { color: var(--muted); font-size: 11px; font-family: 'Space Mono', monospace; }
+
+/* ─── LAYOUT ──────────────────────────────────────────────────────── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 10px;
+  padding: 12px 16px;
+}
+@media (max-width: 1200px) { .main-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 700px)  { .main-grid { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  transition: border-color 0.3s;
+}
+.card:hover { border-color: var(--border2); }
+
+.card-title {
+  font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-bottom: 12px;
+  font-family: 'Space Mono', monospace;
+  display: flex; align-items: center; gap: 6px;
+}
+.card-title::before { content:''; display:inline-block; width:3px; height:3px; border-radius:50%; background:var(--accent); }
+
+/* ─── SIGNAL CARD ─────────────────────────────────────────────────── */
+.signal-card {
+  grid-row: span 1;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.big-signal {
+  font-family: 'Space Mono', monospace;
+  font-size: 52px; font-weight: 700; line-height: 1;
+  text-align: center; padding: 14px 0 8px;
+  letter-spacing: -2px;
+  text-shadow: 0 0 30px currentColor;
+}
+.sig-UP   { color: var(--up); }
+.sig-DOWN { color: var(--down); }
+.sig-HOLD { color: var(--hold); }
+
+.conf-pct { text-align: center; font-size: 16px; font-weight: 500; }
+.conf-bar-wrap {
+  height: 4px; background: var(--bg4); border-radius: 2px;
+  overflow: hidden;
+}
+.conf-bar { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+.conf-bar.up   { background: var(--up); box-shadow: 0 0 6px var(--up); }
+.conf-bar.down { background: var(--down); box-shadow: 0 0 6px var(--down); }
+.conf-bar.hold { background: var(--hold); }
+
+/* ─── KV ROWS ─────────────────────────────────────────────────────── */
+.kv {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+.kv:last-child { border-bottom: none; }
+.kv-key { color: var(--muted); font-size: 12px; flex-shrink: 0; }
+.kv-val { font-weight: 600; font-family: 'Space Mono', monospace; font-size: 12px; text-align: right; }
+
+.green  { color: var(--up); }
+.red    { color: var(--down); }
+.yellow { color: var(--hold); }
+.blue   { color: var(--blue); }
+.purple { color: var(--purple); }
+.teal   { color: var(--teal); }
+
+/* ─── COUNTDOWN ───────────────────────────────────────────────────── */
+.countdown-wrap {
+  text-align: center; padding: 10px 0;
+  border: 1px solid var(--border2);
+  border-radius: 4px; background: var(--bg3);
+}
+.countdown-label { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; font-family: 'Space Mono', monospace; }
+#countdown {
+  font-family: 'Space Mono', monospace;
+  font-size: 34px; font-weight: 700;
+  color: var(--accent); letter-spacing: 4px;
+  transition: color 0.5s;
+}
+.countdown-progress {
+  height: 3px; background: var(--bg4); border-radius: 0 0 4px 4px;
+  overflow: hidden; margin-top: 8px;
+}
+#countdown-bar { height: 100%; background: var(--accent); transition: width 1s linear, background 0.5s; }
+
+/* ─── OF BAR ──────────────────────────────────────────────────────── */
+.of-bar-wrap {
+  height: 12px; border-radius: 2px; overflow: hidden; display: flex;
+  margin: 8px 0 4px;
+  background: var(--bg4);
+}
+.of-buy  { background: var(--up);   height: 100%; transition: width 0.5s; }
+.of-sell { background: var(--down); height: 100%; transition: width 0.5s; }
+
+/* ─── WINRATE SECTION ─────────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.stat-box {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 10px 12px;
+  text-align: center;
+}
+.stat-box-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; font-family: 'Space Mono', monospace; }
+.stat-box-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 22px; font-weight: 700; line-height: 1;
+}
+.stat-box-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+.wr-bar-wrap { height: 6px; background: var(--bg4); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+.wr-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+/* ─── LAST 15 ─────────────────────────────────────────────────────── */
+.last15-title { font-size: 10px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; font-family: 'Space Mono', monospace; }
+.last15-row {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  align-items: center;
+}
+.res-dot {
+  width: 28px; height: 28px;
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.res-dot:hover { transform: scale(1.15); }
+.res-dot.win  { background: var(--up-bg); color: var(--up); border: 1px solid var(--up-dim); }
+.res-dot.loss { background: var(--down-bg); color: var(--down); border: 1px solid var(--down-dim); }
+.res-dot.pending { background: var(--bg4); color: var(--muted2); border: 1px solid var(--border); }
+.last15-streak { font-size: 11px; color: var(--muted); margin-top: 6px; font-family: 'Space Mono', monospace; }
+
+/* ─── REASONS ─────────────────────────────────────────────────────── */
+.reasons-list { list-style: none; }
+.reasons-list li {
+  padding: 5px 0 5px 12px; border-bottom: 1px solid var(--border);
+  font-size: 11.5px; line-height: 1.5; position: relative;
+}
+.reasons-list li:last-child { border-bottom: none; }
+.reasons-list li::before {
+  content: '▸'; position: absolute; left: 0;
+  color: var(--accent); font-size: 10px; top: 6px;
+}
+
+/* ─── SNAPSHOT ────────────────────────────────────────────────────── */
+.snap-section { padding: 0 16px 12px; }
+.snap-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.snap-header h2 { font-size: 11px; color: var(--accent); font-family: 'Space Mono', monospace; letter-spacing: 1px; }
+.snap-ts { font-size: 10px; color: var(--muted); font-family: 'Space Mono', monospace; }
+.snap-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 1100px) { .snap-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 600px)  { .snap-grid { grid-template-columns: 1fr; } }
+.snap-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 10px 12px;
+}
+.snap-card-title { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; font-family: 'Space Mono', monospace; }
+.snap-val { font-size: 20px; font-weight: 700; font-family: 'Space Mono', monospace; }
+.snap-sub { font-size: 10px; color: var(--muted); margin-top: 3px; font-family: 'Space Mono', monospace; }
+
+/* ─── HISTORY ─────────────────────────────────────────────────────── */
+.hist-section { padding: 0 16px 24px; }
+.hist-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.hist-header h2 { font-size: 11px; color: var(--accent); font-family: 'Space Mono', monospace; letter-spacing: 1px; }
+table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+thead th {
+  text-align: left; padding: 6px 8px; color: var(--muted);
+  border-bottom: 1px solid var(--border2); font-weight: normal;
+  white-space: nowrap; font-family: 'Space Mono', monospace; font-size: 10px;
+  letter-spacing: 0.5px;
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+tbody tr:hover { background: var(--bg3); }
+tbody td { padding: 5px 8px; white-space: nowrap; font-family: 'Space Mono', monospace; }
+
+.badge {
+  display: inline-block; padding: 1px 7px; border-radius: 2px;
+  font-size: 10px; font-weight: 700; font-family: 'Space Mono', monospace; letter-spacing: 0.5px;
+}
+.badge-UP   { background: var(--up-bg);   color: var(--up);   border: 1px solid var(--up-dim); }
+.badge-DOWN { background: var(--down-bg); color: var(--down); border: 1px solid var(--down-dim); }
+.badge-HOLD { background: var(--hold-bg); color: var(--hold); border: 1px solid #8a6000; }
+.badge-win  { background: var(--up-bg);   color: var(--up); }
+.badge-loss { background: var(--down-bg); color: var(--down); }
+
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 6px 16px 10px; }
+
+#error-msg { display: none; color: var(--down); padding: 10px 16px; font-size: 12px; }
+
+/* ─── SOUND TOGGLE ────────────────────────────────────────────────── */
+.sound-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--muted); cursor: pointer;
+  user-select: none;
+}
+.sound-label input { accent-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>⚡ OF Bot v33</h1>
+    <span id="live-badge">OFFLINE</span>
+  </div>
+  <span id="update-ts">—</span>
+  <label class="sound-label">
+    <input type="checkbox" id="sound-toggle" checked>
+    🔔 Звук
+  </label>
+</header>
+
+<div id="error-msg"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!--  MAIN GRID                                                         -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div class="main-grid">
+
+  <!-- ── COL 1: SIGNAL ─────────────────────────────────────────────── -->
+  <div class="card signal-card">
+    <div class="card-title">Финальный сигнал</div>
+    <div class="big-signal" id="sig-text">—</div>
+    <div class="conf-pct" id="sig-conf" style="color:var(--muted)">—%</div>
+    <div class="conf-bar-wrap"><div class="conf-bar hold" id="conf-bar" style="width:50%"></div></div>
+
+    <div style="margin-top:12px;">
+      <div class="kv"><span class="kv-key">Score</span><span class="kv-val" id="sig-score">—</span></div>
+      <div class="kv"><span class="kv-key">Score signal</span><span class="kv-val" id="sig-score-sig">—</span></div>
+      <div class="kv"><span class="kv-key">Свеча открытие</span><span class="kv-val blue" id="sig-candle">—</span></div>
+      <div class="kv"><span class="kv-key">Закроется</span><span class="kv-val" id="sig-close">—</span></div>
+      <div class="kv"><span class="kv-key">Сек. до входа</span><span class="kv-val yellow" id="sig-secs">—</span></div>
+    </div>
+
+    <!-- Countdown -->
+    <div class="countdown-wrap" style="margin-top:12px;">
+      <div class="countdown-label">Следующий сигнал через</div>
+      <div id="countdown">—:——</div>
+      <div class="countdown-progress">
+        <div id="countdown-bar" style="width:100%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COL 2: OF + DEPTH ─────────────────────────────────────────── -->
+  <div style="display:flex; flex-direction:column; gap:10px;">
+
+    <div class="card">
+      <div class="card-title">Order Flow</div>
+      <div class="of-bar-wrap">
+        <div class="of-buy"  id="of-buy-bar"  style="width:50%"></div>
+        <div class="of-sell" id="of-sell-bar" style="width:50%"></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:8px;">
+        <span class="green" id="of-buy-pct">50.0% buy</span>
+        <span class="red"   id="of-sell-pct">50.0% sell</span>
+      </div>
+      <div class="kv"><span class="kv-key">Трейдов в OF-окне</span><span class="kv-val" id="of-trades">—</span></div>
+      <div class="kv"><span class="kv-key">Absorption</span><span class="kv-val" id="of-abs">—</span></div>
+      <div class="kv"><span class="kv-key">Dominance</span><span class="kv-val" id="of-dom">—</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Стакан (Depth)</div>
+      <div class="kv"><span class="kv-key">Imbalance</span><span class="kv-val" id="dep-imb">—</span></div>
+      <div class="kv"><span class="kv-key">Bid/Ask ratio</span><span class="kv-val" id="dep-ratio">—</span></div>
+      <div class="kv"><span class="kv-key">Bid vol</span><span class="kv-val green" id="dep-bid">—</span></div>
+      <div class="kv"><span class="kv-key">Ask vol</span><span class="kv-val red"   id="dep-ask">—</span></div>
+      <div class="kv"><span class="kv-key">Уровней</span><span class="kv-val"       id="dep-lvl">—</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cum Delta + Тренд</div>
+      <div class="kv"><span class="kv-key">Cum delta (послед.)</span><span class="kv-val" id="cum-last">—</span></div>
+      <div class="kv"><span class="kv-key">Slope</span><span class="kv-val" id="cum-slope">—</span></div>
+      <div class="kv" style="margin-top:6px;"><span class="kv-key">Delta trend 7св</span><span class="kv-val" id="trend-short">—</span></div>
+      <div class="kv"><span class="kv-key">Delta trend 20св</span><span class="kv-val" id="trend-med">—</span></div>
+      <div class="kv"><span class="kv-key">Дивергенция</span><span class="kv-val yellow" id="divergence">—</span></div>
+    </div>
+
+  </div>
+
+  <!-- ── COL 3: STATS + ADAPTIVE + CATBOOST + REASONS ─────────────── -->
+  <div style="display:flex; flex-direction:column; gap:10px;">
+
+    <!-- WINRATE PANEL (новый блок) -->
+    <div class="card">
+      <div class="card-title">Статистика / Winrate</div>
+
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-box-label">Всего</div>
+          <div class="stat-box-val" id="stat-total" style="color:var(--blue)">—</div>
+          <div class="stat-box-sub" id="stat-wins-total">— побед</div>
+          <div class="wr-bar-wrap"><div class="wr-bar" id="wr-bar-total" style="background:var(--blue);width:0%"></div></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-label">▲ UP</div>
+          <div class="stat-box-val green" id="stat-wr-up">—%</div>
+          <div class="stat-box-sub" id="stat-up-detail">— / —</div>
+          <div class="wr-bar-wrap"><div class="wr-bar" id="wr-bar-up" style="background:var(--up);width:0%"></div></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-label">▼ DOWN</div>
+          <div class="stat-box-val red" id="stat-wr-down">—%</div>
+          <div class="stat-box-sub" id="stat-down-detail">— / —</div>
+          <div class="wr-bar-wrap"><div class="wr-bar" id="wr-bar-down" style="background:var(--down);width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- Общий WR большой -->
+      <div style="text-align:center; padding:8px 0 10px; border-top:1px solid var(--border);">
+        <div style="font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; font-family:'Space Mono',monospace;">Общий Winrate</div>
+        <div id="stat-wr-total" style="font-family:'Space Mono',monospace; font-size:36px; font-weight:700; color:var(--hold); transition: color 0.5s;">—%</div>
+      </div>
+
+      <!-- Last 15 results -->
+      <div style="border-top:1px solid var(--border); padding-top:10px;">
+        <div class="last15-title">Последние 15 результатов</div>
+        <div class="last15-row" id="last15-row">
+          <span style="color:var(--muted); font-size:11px;">Нет данных...</span>
+        </div>
+        <div class="last15-streak" id="last15-streak"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Adaptive Trend</div>
+      <div class="kv"><span class="kv-key">Направление</span><span class="kv-val" id="adapt-dir">—</span></div>
+      <div class="kv"><span class="kv-key">Pearson r</span><span class="kv-val" id="adapt-r">—</span></div>
+      <div class="kv"><span class="kv-key">Slope ×1000</span><span class="kv-val" id="adapt-slope">—</span></div>
+
+      <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+        <div class="card-title" style="margin-bottom:8px;">CatBoost</div>
+        <div class="kv"><span class="kv-key">Статус</span><span class="kv-val" id="cb-active">—</span></div>
+        <div class="kv"><span class="kv-key">Сигнал</span><span class="kv-val" id="cb-signal">—</span></div>
+        <div class="kv"><span class="kv-key">P(UP) / P(DOWN)</span><span class="kv-val" id="cb-probs">—</span></div>
+        <div class="kv"><span class="kv-key">Confidence</span><span class="kv-val" id="cb-conf">—</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Причины сигнала</div>
+      <ul class="reasons-list" id="reasons-list">
+        <li style="color:var(--muted);">Ожидание данных...</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ── СНИМОК ────────────────────────────────────────────────────── -->
+<div class="snap-section">
+  <div class="snap-header">
+    <h2>📷 СНИМОК ПОСЛЕДНЕГО РЕШЕНИЯ</h2>
+    <span class="snap-ts" id="snap-ts">—</span>
+  </div>
+  <div class="snap-grid">
+    <div class="snap-card">
+      <div class="snap-card-title">Свеча</div>
+      <div class="snap-val" id="snap-candle-close">—</div>
+      <div class="snap-sub" id="snap-candle-ohlc">O — H — L —</div>
+      <div class="snap-sub" id="snap-candle-delta">Δ —</div>
+      <div class="snap-sub" id="snap-candle-vol">Vol —</div>
+    </div>
+    <div class="snap-card">
+      <div class="snap-card-title">Order Flow</div>
+      <div class="snap-val" id="snap-of-buy">—</div>
+      <div class="snap-sub" id="snap-of-trades">Трейдов —</div>
+      <div class="snap-sub" id="snap-of-abs">Absorption: —</div>
+      <div class="snap-sub" id="snap-of-lbv">LB — / LS —</div>
+    </div>
+    <div class="snap-card">
+      <div class="snap-card-title">Стакан</div>
+      <div class="snap-val" id="snap-dep-imb">—</div>
+      <div class="snap-sub" id="snap-dep-ratio">Ratio —</div>
+      <div class="snap-sub" id="snap-dep-vols">Bid — Ask —</div>
+    </div>
+    <div class="snap-card">
+      <div class="snap-card-title">Cum Delta</div>
+      <div class="snap-val" id="snap-cum-last">—</div>
+      <div class="snap-sub" id="snap-cum-slope">Slope —</div>
+      <div class="snap-sub" id="snap-cum-first">Начало окна —</div>
+    </div>
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ── ИСТОРИЯ ───────────────────────────────────────────────────── -->
+<div class="hist-section">
+  <div class="hist-header">
+    <h2>📊 ИСТОРИЯ СИГНАЛОВ (последние 50)</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Время UTC</th>
+        <th>Сигнал</th>
+        <th>Conf%</th>
+        <th>Score</th>
+        <th>OF buy%</th>
+        <th>Depth imb</th>
+        <th>Cum Δ</th>
+        <th>Δ тренд</th>
+        <th>Дивергенция</th>
+        <th>Факт</th>
+        <th>Результат</th>
+      </tr>
+    </thead>
+    <tbody id="hist-body">
+      <tr><td colspan="11" style="text-align:center;color:var(--muted);padding:20px;">Загрузка...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<script>
+const API = window.location.origin;
+let lastSignalTs = null;
+let nextCandleClose = null;
+let countdownInterval = null;
+
+// ── SOUND ──────────────────────────────────────────────────────────────────
+function playBeep(type) {
+  if (!document.getElementById('sound-toggle').checked) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if (type === 'UP') {
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
+    } else if (type === 'DOWN') {
+      osc.frequency.setValueAtTime(660, ctx.currentTime);
+      osc.frequency.setValueAtTime(440, ctx.currentTime + 0.15);
+    } else {
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+    }
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5);
+  } catch(e) {}
+}
+
+// ── COUNTDOWN ─────────────────────────────────────────────────────────────
+function startCountdown(closeIso) {
+  if (countdownInterval) clearInterval(countdownInterval);
+  nextCandleClose = closeIso;
+  function tick() {
+    const el  = document.getElementById('countdown');
+    const bar = document.getElementById('countdown-bar');
+    if (!nextCandleClose) { el.textContent = '—:——'; return; }
+    const closeTs  = new Date(nextCandleClose).getTime();
+    const secsLeft = Math.max(0, Math.floor((closeTs - Date.now()) / 1000));
+    const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+    el.textContent = m + ':' + String(s).padStart(2, '0');
+    if (secsLeft <= 15) {
+      el.style.color = 'var(--down)'; bar.style.background = 'var(--down)';
+    } else if (secsLeft <= 60) {
+      el.style.color = 'var(--hold)'; bar.style.background = 'var(--hold)';
+    } else {
+      el.style.color = 'var(--accent)'; bar.style.background = 'var(--accent)';
+    }
+    bar.style.width = Math.min(100, (secsLeft / 300) * 100) + '%';
+  }
+  tick(); countdownInterval = setInterval(tick, 1000);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function fmt(n, d=2)    { if (n===null||n===undefined) return '—'; return parseFloat(n).toFixed(d); }
+function fmtSign(n, d=2){ if (n===null||n===undefined) return '—'; const v=parseFloat(n).toFixed(d); return v>0?'+'+v:v; }
+function timeStr(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); } catch { return iso; }
+}
+function sigBadge(s) {
+  if (!s) return '<span style="color:var(--muted)">—</span>';
+  return `<span class="badge badge-${s}">${s==='UP'?'▲':s==='DOWN'?'▼':'●'} ${s}</span>`;
+}
+function colorNum(v) {
+  const n = parseFloat(v);
+  if (isNaN(n)) return '<span style="color:var(--muted)">—</span>';
+  const cls = n>0?'green':n<0?'red':'';
+  return `<span class="${cls}">${fmtSign(n)}</span>`;
+}
+function trendColor(t) {
+  if (!t||t==='—') return `<span style="color:var(--muted)">—</span>`;
+  if (t.includes('📈')) return `<span class="green">${t}</span>`;
+  if (t.includes('📉')) return `<span class="red">${t}</span>`;
+  return `<span style="color:var(--muted)">${t}</span>`;
+}
+function wrColor(wr) {
+  if (wr >= 60) return 'var(--up)';
+  if (wr >= 50) return 'var(--hold)';
+  return 'var(--down)';
+}
+
+// ── LOAD STATS ────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await fetch(API + '/api/stats');
+    if (!r.ok) return;
+    const d = await r.json();
+
+    const upTotal   = d.up_total   || 0;
+    const upWins    = d.up_wins    || 0;
+    const dnTotal   = d.down_total || 0;
+    const dnWins    = d.down_wins  || 0;
+    const totTotal  = upTotal + dnTotal;
+    const totWins   = upWins + dnWins;
+    const wrUp      = d.winrate_up    || 0;
+    const wrDown    = d.winrate_down  || 0;
+    const wrTotal   = d.winrate_total || 0;
+
+    document.getElementById('stat-total').textContent      = totTotal;
+    document.getElementById('stat-wins-total').textContent = totWins + ' побед';
+    document.getElementById('stat-wr-up').textContent      = wrUp.toFixed(1) + '%';
+    document.getElementById('stat-up-detail').textContent  = upWins + ' / ' + upTotal;
+    document.getElementById('stat-wr-down').textContent    = wrDown.toFixed(1) + '%';
+    document.getElementById('stat-down-detail').textContent= dnWins + ' / ' + dnTotal;
+
+    const wrEl = document.getElementById('stat-wr-total');
+    wrEl.textContent = wrTotal.toFixed(1) + '%';
+    wrEl.style.color = wrColor(wrTotal);
+
+    document.getElementById('wr-bar-total').style.width = Math.min(100, wrTotal) + '%';
+    document.getElementById('wr-bar-up').style.width    = Math.min(100, wrUp)    + '%';
+    document.getElementById('wr-bar-down').style.width  = Math.min(100, wrDown)  + '%';
+
+    // Last 15 from stats_file
+    const last15 = d.last_15 || [];
+    renderLast15(last15);
+  } catch(e) {
+    // fallback: try to compute from history
+  }
+}
+
+// ── RENDER LAST 15 ────────────────────────────────────────────────────────
+function renderLast15(arr) {
+  const container = document.getElementById('last15-row');
+  const streakEl  = document.getElementById('last15-streak');
+  if (!arr || !arr.length) {
+    container.innerHTML = '<span style="color:var(--muted);font-size:11px;">Ожидание результатов...</span>';
+    streakEl.textContent = '';
+    return;
+  }
+  container.innerHTML = arr.map((v, i) => {
+    const isWin = (v === '+' || v === true || v === 'win');
+    const isLoss= (v === '-' || v === false || v === 'loss');
+    const cls   = isWin ? 'win' : isLoss ? 'loss' : 'pending';
+    const sym   = isWin ? '+' : isLoss ? '−' : '?';
+    const title = isWin ? 'WIN' : isLoss ? 'LOSS' : 'Pending';
+    return `<div class="res-dot ${cls}" title="${title} #${i+1}">${sym}</div>`;
+  }).join('');
+
+  // Streak analysis
+  let streak = 0, streakType = '';
+  for (let i = arr.length - 1; i >= 0; i--) {
+    const cur = arr[i];
+    const isW = (cur === '+' || cur === true);
+    const isL = (cur === '-' || cur === false);
+    if (i === arr.length - 1) {
+      streakType = isW ? 'win' : 'loss';
+    }
+    if ((streakType === 'win' && isW) || (streakType === 'loss' && isL)) streak++;
+    else break;
+  }
+  const winsInLast = arr.filter(v => v==='+' || v===true).length;
+  const totalInLast = arr.filter(v => v==='+' || v===true || v==='-' || v===false).length;
+  const localWR = totalInLast > 0 ? (winsInLast / totalInLast * 100).toFixed(0) : '—';
+  const streakText = streak > 1 ? `${streak} ${streakType === 'win' ? 'побед' : 'потерь'} подряд` : '';
+  streakEl.textContent = `${winsInLast}/${totalInLast} в последних 15 (${localWR}%)${streakText ? '  ·  ' + streakText : ''}`;
+  streakEl.style.color = streakType === 'win' && streak > 2 ? 'var(--up)' : streakType === 'loss' && streak > 2 ? 'var(--down)' : 'var(--muted)';
+}
+
+// ── LOAD LIVE ─────────────────────────────────────────────────────────────
+async function loadLive() {
+  try {
+    const r = await fetch(API + '/api/live');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+
+    const badge = document.getElementById('live-badge');
+    const genAt = d.generated_at || '';
+    const ageMs = genAt ? Date.now() - new Date(genAt).getTime() : 9999999;
+    badge.textContent = ageMs < 90000 ? 'LIVE' : 'STALE';
+    badge.className   = ageMs < 90000 ? 'live' : '';
+    document.getElementById('update-ts').textContent = 'Обновлено: ' + timeStr(genAt);
+
+    if (genAt && genAt !== lastSignalTs) {
+      if (lastSignalTs !== null) playBeep(d.final_signal || 'HOLD');
+      lastSignalTs = genAt;
+    }
+    if (d.candle_close) startCountdown(d.candle_close);
+
+    // Signal
+    const sig = d.final_signal || 'HOLD';
+    const conf = parseFloat(d.confidence || 50);
+    const sigEl = document.getElementById('sig-text');
+    sigEl.textContent = sig === 'UP' ? '▲ UP' : sig === 'DOWN' ? '▼ DOWN' : '● HOLD';
+    sigEl.className = 'big-signal ' + (sig==='UP'?'sig-UP':sig==='DOWN'?'sig-DOWN':'sig-HOLD');
+
+    const confEl = document.getElementById('sig-conf');
+    confEl.textContent = fmt(conf,1) + '%';
+    confEl.style.color = sig==='UP'?'var(--up)':sig==='DOWN'?'var(--down)':'var(--hold)';
+
+    const bar = document.getElementById('conf-bar');
+    bar.style.width   = Math.min(100, conf) + '%';
+    bar.className     = 'conf-bar ' + (sig==='UP'?'up':sig==='DOWN'?'down':'hold');
+
+    document.getElementById('sig-score').innerHTML    = colorNum(d.score || 0);
+    document.getElementById('sig-score-sig').innerHTML= sigBadge(d.score_signal || '—');
+    document.getElementById('sig-candle').textContent = timeStr(d.candle_open);
+    document.getElementById('sig-close').textContent  = timeStr(d.candle_close);
+    document.getElementById('sig-secs').textContent   = fmt(d.secs_before, 0) + 'с';
+
+    // OF
+    const of = d.of || {};
+    const buyPct  = parseFloat(of.buy_pct  || 50);
+    const sellPct = parseFloat(of.sell_pct || 50);
+    document.getElementById('of-buy-bar').style.width  = buyPct + '%';
+    document.getElementById('of-sell-bar').style.width = sellPct + '%';
+    document.getElementById('of-buy-pct').textContent  = fmt(buyPct,1)  + '% buy';
+    document.getElementById('of-sell-pct').textContent = fmt(sellPct,1) + '% sell';
+    document.getElementById('of-trades').textContent   = of.trade_count || '—';
+    const abs = of.absorption || 'none';
+    document.getElementById('of-abs').innerHTML = abs !== 'none'
+      ? `<span class="${abs.includes('bid')?'green':'red'}">${abs}</span>` : '—';
+    document.getElementById('of-dom').textContent = of.dominance || '—';
+
+    // Depth
+    const dep = d.depth || {};
+    document.getElementById('dep-imb').innerHTML   = colorNum(dep.imbalance);
+    document.getElementById('dep-ratio').textContent = fmt(dep.ratio, 2) + 'x';
+    document.getElementById('dep-bid').textContent  = fmt(dep.bid_vol, 0);
+    document.getElementById('dep-ask').textContent  = fmt(dep.ask_vol, 0);
+    document.getElementById('dep-lvl').textContent  = dep.levels_used || '—';
+
+    // Cum delta
+    const cum = d.cum_delta || {};
+    document.getElementById('cum-last').innerHTML  = colorNum(cum.last);
+    document.getElementById('cum-slope').innerHTML = colorNum(cum.slope);
+
+    // Delta trend
+    const dt = d.delta_trend || {};
+    document.getElementById('trend-short').innerHTML = trendColor(dt.short);
+    document.getElementById('trend-med').innerHTML   = trendColor(dt.medium);
+    const div = d.divergence;
+    document.getElementById('divergence').textContent = div || '—';
+    document.getElementById('divergence').style.color = div ? 'var(--hold)' : 'var(--muted)';
+
+    // Adaptive
+    const ad = d.adaptive || {};
+    const adDir = ad.direction || 'neutral';
+    document.getElementById('adapt-dir').innerHTML =
+      adDir==='UP' ? '<span class="green">UP ▲</span>' :
+      adDir==='DOWN' ? '<span class="red">DOWN ▼</span>' :
+      '<span style="color:var(--muted)">neutral</span>';
+    document.getElementById('adapt-r').textContent   = fmt(ad.pearson, 3);
+    document.getElementById('adapt-slope').innerHTML = colorNum(ad.slope * 1000);
+
+    // CatBoost
+    const cb = d.catboost || {};
+    document.getElementById('cb-active').innerHTML = cb.active
+      ? '<span class="green">✓ Активен</span>'
+      : '<span style="color:var(--muted)">Выключен</span>';
+    document.getElementById('cb-signal').innerHTML = cb.signal ? sigBadge(cb.signal) : '—';
+    document.getElementById('cb-probs').textContent =
+      cb.prob_up !== undefined ? `${fmt(cb.prob_up,1)}% / ${fmt(cb.prob_down,1)}%` : '—';
+    document.getElementById('cb-conf').textContent = cb.conf ? fmt(cb.conf,1)+'%' : '—';
+
+    // Reasons
+    const reasons = d.reasons || [];
+    const ul = document.getElementById('reasons-list');
+    ul.innerHTML = reasons.length
+      ? reasons.map(rr => `<li>${rr}</li>`).join('')
+      : '<li style="color:var(--muted);">—</li>';
+
+  } catch(e) {
+    document.getElementById('live-badge').textContent = 'OFFLINE';
+    document.getElementById('live-badge').className   = '';
+    document.getElementById('error-msg').style.display = 'block';
+    document.getElementById('error-msg').textContent   = 'Ошибка live данных: ' + e.message;
+  }
+}
+
+// ── LOAD SNAPSHOT ─────────────────────────────────────────────────────────
+async function loadSnapshot() {
+  try {
+    const r = await fetch(API + '/api/snapshot');
+    if (!r.ok) return;
+    const d = await r.json();
+
+    document.getElementById('snap-ts').textContent = 'Снимок: ' + timeStr(d.ts);
+    const c = d.candle || {};
+    const closeVal = parseFloat(c.close || 0), openVal = parseFloat(c.open || 0);
+    const snapCloseEl = document.getElementById('snap-candle-close');
+    snapCloseEl.textContent = fmt(closeVal, 1);
+    snapCloseEl.className = 'snap-val ' + (closeVal >= openVal ? 'green' : 'red');
+    document.getElementById('snap-candle-ohlc').textContent  = `O ${fmt(c.open,1)}  H ${fmt(c.high,1)}  L ${fmt(c.low,1)}`;
+    document.getElementById('snap-candle-delta').innerHTML   = `Δ ${colorNum(c.delta)}`;
+    document.getElementById('snap-candle-vol').textContent   = `Vol ${fmt(c.volume,2)} ${c.volume_estimated?'(оценочный)':''}`;
+
+    const of = d.order_flow || {};
+    const bp = parseFloat(of.buy_pct || 50);
+    const snapOfEl = document.getElementById('snap-of-buy');
+    snapOfEl.textContent = fmt(bp,1) + '% BUY';
+    snapOfEl.className = 'snap-val '+(bp>=55?'green':bp<=45?'red':'');
+    document.getElementById('snap-of-trades').textContent = 'Трейдов: '+(of.trade_count||'—');
+    document.getElementById('snap-of-abs').textContent    = 'Absorption: '+(of.absorption||'none');
+    document.getElementById('snap-of-lbv').textContent    = `LB ${fmt(of.large_buy_vol,2)}  LS ${fmt(of.large_sell_vol,2)}`;
+
+    const dep = d.depth || {};
+    const imbVal = parseFloat(dep.imbalance || 0);
+    const snapDepEl = document.getElementById('snap-dep-imb');
+    snapDepEl.textContent = fmtSign(imbVal, 3);
+    snapDepEl.className = 'snap-val '+(imbVal>0?'green':imbVal<0?'red':'');
+    document.getElementById('snap-dep-ratio').textContent = 'Ratio: '+fmt(dep.ratio,2)+'x';
+    document.getElementById('snap-dep-vols').textContent  = `Bid ${fmt(dep.bid_vol,0)}  Ask ${fmt(dep.ask_vol,0)}`;
+
+    const cum = d.cum_delta || {};
+    const cumLast = parseFloat(cum.last || 0);
+    const snapCumEl = document.getElementById('snap-cum-last');
+    snapCumEl.textContent = fmtSign(cumLast, 0);
+    snapCumEl.className = 'snap-val '+(cumLast>0?'green':cumLast<0?'red':'');
+    document.getElementById('snap-cum-slope').textContent = 'Slope: '+fmtSign(cum.slope,0);
+    document.getElementById('snap-cum-first').textContent = 'Начало: '+fmtSign(cum.first,0);
+  } catch(e) {}
+}
+
+// ── LOAD HISTORY ─────────────────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const r = await fetch(API + '/api/history?limit=50');
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const items = await r.json();
+    const tbody = document.getElementById('hist-body');
+    if (!items || !items.length) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:20px;">Нет данных</td></tr>';
+      return;
+    }
+    tbody.innerHTML = [...items].reverse().map(d => {
+      const ts     = timeStr(d.ts || d.timestamp_utc);
+      const sig    = d.signal || d.predicted_signal || '—';
+      const conf   = fmt(d.confidence, 1);
+      const score  = fmtSign(d.score || d.total_score, 1);
+      const ofBuy  = fmt(d.of_buy_pct, 1) + '%';
+      const depImb = fmtSign(d.depth_imbalance, 3);
+      const cumL   = fmtSign(d.cum_delta_last, 0);
+      const trend  = (d.delta_trend||'—').split(' ')[0];
+      const divStr = d.divergence && d.divergence!=='none' ? '⚠️' : '—';
+      const actual = d.actual_direction || d.actual || null;
+      const win    = d.prediction_correct !== undefined ? d.prediction_correct : d.win;
+      const actualCell = actual ? sigBadge(actual) : '<span style="color:var(--muted)">⏳</span>';
+      let resultCell = '<span style="color:var(--muted)">⏳</span>';
+      if (win===true)  resultCell = '<span class="badge badge-win">✓ WIN</span>';
+      if (win===false) resultCell = '<span class="badge badge-loss">✗ LOSS</span>';
+      const sColor = parseFloat(score)>0?'green':parseFloat(score)<0?'red':'';
+      const iColor = parseFloat(depImb)>0?'green':parseFloat(depImb)<0?'red':'';
+      const cColor = parseFloat(cumL)>0?'green':parseFloat(cumL)<0?'red':'';
+      const tColor = trend.includes('📈')?'green':trend.includes('📉')?'red':'muted';
+      return `<tr>
+        <td style="color:var(--muted)">${ts}</td>
+        <td>${sigBadge(sig)}</td>
+        <td>${conf}%</td>
+        <td><span class="${sColor}">${score}</span></td>
+        <td>${ofBuy}</td>
+        <td><span class="${iColor}">${depImb}</span></td>
+        <td><span class="${cColor}">${cumL}</span></td>
+        <td><span style="color:var(--${tColor})">${trend}</span></td>
+        <td>${divStr}</td>
+        <td>${actualCell}</td>
+        <td>${resultCell}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('hist-body').innerHTML =
+      `<tr><td colspan="11" style="color:var(--down);padding:10px;">Ошибка: ${e.message}</td></tr>`;
+  }
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────────────
+async function refresh() {
+  await loadLive();
+  await loadSnapshot();
+  await loadStats();
+  await loadHistory();
+}
+
+refresh();
+setInterval(loadLive,     5000);
+setInterval(loadSnapshot, 10000);
+setInterval(loadStats,    10000);
+setInterval(loadHistory,  15000);
+</script>
+</body>
+</html>
