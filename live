@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-03-15T10:19:46Z",
+  "candle_open": "2026-03-15T10:20:00Z",
+  "candle_close": "2026-03-15T10:25:00Z",
+  "secs_before": 15,
+  "final_signal": "UP",
+  "confidence": 66.1,
+  "score": 28.35,
+  "of": {
+    "buy_pct": 71.2,
+    "sell_pct": 28.8,
+    "trade_count": 3000,
+    "absorption": "none",
+    "dominance": "buyers_strong"
+  },
+  "depth": {
+    "imbalance": 0.006,
+    "ratio": 1.01,
+    "bid_vol": 9.88,
+    "ask_vol": 9.76,
+    "levels_used": 100
+  },
+  "cum_delta": {
+    "last": 24.73400000000001,
+    "slope": 75.66
+  },
+  "delta_trend": {
+    "short": "растущий 📈",
+    "medium": "флэт ➡️"
+  },
+  "divergence": "медвежья дивергенция ⚠️",
+  "adaptive": {
+    "direction": "UP",
+    "pearson": 0.8426,
+    "slope": 0.000142
+  },
+  "catboost": {
+    "active": false,
+    "signal": null,
+    "prob_up": 50.0,
+    "prob_down": 50.0,
+    "conf": 50.0
+  },
+  "reasons": [
+    "сильная положительная дельта свечи (+90)",
+    "ускорение покупок (+125% от среднего)",
+    "OF последние 10мин: 71% buy / 29% sell",
+    "обнаружена медвежья дивергенция ⚠️"
+  ]
+}
